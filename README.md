@@ -7,80 +7,118 @@ This TradingView Pine Script indicator combines:
 - Configurable Moving Averages (EMA / SMA)
 - Volume-based Candle Overlay (transparency filter)
 
-The goal of this script is to provide a **clean, readable market structure view** enhanced with **volume context**, without breaking native TradingView styling.
-
 ---
 
 ## Features
 
 ### 1. Multi-Timeframe Trend (MTF)
-The script analyzes trend direction across multiple timeframes:
+Analyzes trend across:
+- 5M, 15M, 1H, 4H, 1D
 
-- 5M
-- 15M
-- 1H
-- 4H
-- 1D
-
-Trend definition:
-- Bullish → price above MA + MA rising
-- Bearish → price below MA or MA falling
-
-Displayed as a table in the top-right corner.
+Bullish → price above MA + MA rising  
+Bearish → otherwise
 
 ---
 
-### 2. Moving Averages (EMA / SMA)
-
-You can choose:
-- EMA (default)
-- SMA
-
-Four independent moving averages:
-- MA #1 (default: 21)
-- MA #2 (default: 50)
-- MA #3 (default: 99)
-- MA #4 (default: 200)
-
-These are plotted directly on the chart and **fully customizable via TradingView Style panel**.
+### 2. Moving Averages
+- EMA or SMA
+- 4 independent lines (21, 50, 99, 200 default)
+- Fully editable in TradingView **Style tab**
 
 ---
 
 ### 3. Volume Candle Overlay
 
-This is a visual layer applied on top of candles.
+Overlay modifies candle visibility based on volume.
 
-Instead of replacing candles, it **modifies their visibility based on volume**.
+### Volume Normalization
+volNorm = (volume - lowest(volume)) / (highest(volume) - lowest(volume))
 
-#### How it works:
-- Volume is normalized over a lookback window
-- Each candle gets a transparency value:
-  - High volume → less transparent (more visible)
-  - Low volume → more transparent (faded)
+### Transparency Logic
+- High volume → visible candle  
+- Low volume → faded candle  
 
-#### Result:
-- Important candles stand out
-- Low-volume noise fades out
+### Implementation
+Uses:
+barcolor()
+
+This preserves native candles and Style settings.
 
 ---
 
 ## Settings
 
 ### Volume Candle
-
-| Setting | Description |
-|--------|------------|
-| Enable Volume Candle Overlay | Turns overlay ON/OFF |
-| Bullish Color | Color for bullish candles |
-| Bearish Color | Color for bearish candles |
-| Volume Lookback | Number of candles used to normalize volume |
-| Min Transparency (High Volume) | Visibility of high-volume candles |
-| Max Transparency (Low Volume) | Fade level for low-volume candles |
+- Enable Volume Overlay
+- Bullish Color
+- Bearish Color
+- Volume Lookback
+- Min Transparency (High Volume)
+- Max Transparency (Low Volume)
 
 ---
 
-## How It Works (Technical)
+## EMA Color Settings
 
-### Volume Normalization
-```text
-volNorm = (volume - lowest(volume)) / (highest(volume) - lowest(volume))
+Default:
+color.black
+
+To change:
+1. Open indicator settings
+2. Go to Style tab
+3. Modify MA colors
+
+---
+
+## If EMA Colors Don’t Work
+
+Cause:
+Using plotcandle()
+
+Fix:
+Use barcolor() only
+
+---
+
+## Recommended Setup
+
+### Clean View
+- Bull → white
+- Bear → light gray
+- Min transparency: 40–60
+- Max transparency: 80–90
+
+### Scalping
+- Lower min transparency
+- Lookback: 20–30
+
+---
+
+## Use Cases
+
+- Trend confirmation
+- Volume filtering
+- Scalping setups
+- Structure + volume analysis
+
+---
+
+## Limitations
+
+- No separate wick coloring
+- Volume depends on lookback
+- Overlay affects full candle
+
+---
+
+## Installation
+
+1. Open TradingView
+2. Paste script into Pine Editor
+3. Add to chart
+
+---
+
+## License
+
+MIT

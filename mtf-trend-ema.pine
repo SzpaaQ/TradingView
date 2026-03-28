@@ -1,0 +1,132 @@
+//@version=6
+indicator("MTF Trend + EMA/MA 1-4", overlay=true)
+
+// =====================
+// === MA TYPE =========
+// =====================
+
+maType = input.string(
+     "EMA", "Average Type",
+     options=["EMA", "SMA"],
+     tooltip="Choose whether the script should use EMA or SMA."
+)
+
+f_ma(src, len) =>
+    maType == "EMA" ? ta.ema(src, len) : ta.sma(src, len)
+
+// =====================
+// === MTF TREND =======
+// =====================
+
+emaLen = input.int(
+     21, "Trend MA length", minval=1,
+     tooltip="MTF trend rule uses selected average type on each timeframe.\nBullish = close above MA AND MA rising (slope lookback)."
+)
+
+slopeLen = input.int(
+     5, "Slope lookback", minval=1,
+     tooltip="How many bars back we compare MA to detect rising/falling.\nHigher = smoother trend, slower reaction."
+)
+
+f_state(tf) =>
+    request.security(syminfo.tickerid, tf,
+        (
+            close > f_ma(close, emaLen) and
+            f_ma(close, emaLen) > f_ma(close, emaLen)[slopeLen]
+        ) ? 1 : -1
+    )
+
+f_txt(state) => state == 1 ? "Bullish" : "Bearish"
+f_col(state) => state == 1 ? color.lime : color.red
+
+// =====================
+// === MA INPUTS =======
+// =====================
+
+grp = "MA"
+
+ma1_len = input.int(21, "MA #1 Length", group=grp, minval=1,
+    tooltip="Length for MA #1 (default 21).")
+
+ma2_len = input.int(50, "MA #2 Length", group=grp, minval=1,
+    tooltip="Length for MA #2 (default 50).")
+
+ma3_len = input.int(99, "MA #3 Length", group=grp, minval=1,
+    tooltip="Length for MA #3 (default 99).")
+
+ma4_len = input.int(200, "MA #4 Length", group=grp, minval=1,
+    tooltip="Length for MA #4 (default 200).")
+
+// =====================
+// === VOLUME CANDLE ===
+// =====================
+
+grpVol = "Volume Candle"
+
+enableVolumeOverlay = input.bool(true, "Enable Volume Candle Overlay", group=grpVol)
+
+bullColor = input.color(color.white, "Bullish Color", group=grpVol)
+bearColor = input.color(color.white, "Bearish Color", group=grpVol)
+
+volLookback = input.int(50, "Volume Lookback", minval=2, group=grpVol,
+    tooltip="Number of candles used to compare current volume.")
+
+minTransparency = input.int(50, "Min Transparency (High Volume)", minval=0, maxval=100, group=grpVol,
+    tooltip="Transparency for highest relative volume. Lower = more visible.")
+
+maxTransparency = input.int(85, "Max Transparency (Low Volume)", minval=0, maxval=100, group=grpVol,
+    tooltip="Transparency for lowest relative volume. Higher = more faded.")
+
+// =====================
+// === CALCULATIONS ====
+// =====================
+
+ma1 = f_ma(close, ma1_len)
+ma2 = f_ma(close, ma2_len)
+ma3 = f_ma(close, ma3_len)
+ma4 = f_ma(close, ma4_len)
+
+volMin = ta.lowest(volume, volLookback)
+volMax = ta.highest(volume, volLookback)
+volRange = math.max(volMax - volMin, 1)
+
+volNorm = (volume - volMin) / volRange
+volNormClamped = math.max(0.0, math.min(1.0, volNorm))
+
+candleTransparency = int(math.round(
+    maxTransparency - (maxTransparency - minTransparency) * volNormClamped
+))
+
+isBull = close >= open
+baseColor = isBull ? bullColor : bearColor
+overlayColor = color.new(baseColor, enableVolumeOverlay ? candleTransparency : 100)
+
+// =====================
+// === PLOTS ===========
+// =====================
+
+plot(ma1, title="MA 1", color=color.black)
+plot(ma2, title="MA 2", color=color.black)
+plot(ma3, title="MA 3", color=color.black)
+plot(ma4, title="MA 4", color=color.black)
+
+barcolor(enableVolumeOverlay ? overlayColor : na)
+
+// =====================
+// === MTF TABLE =======
+// =====================
+
+s1d  = f_state("D")
+s4h  = f_state("240")
+s1h  = f_state("60")
+s15m = f_state("15")
+s5m  = f_state("5")
+
+var table t = table.new(position.top_right, 1, 5)
+
+if barstate.islast
+    table.cell(t, 0, 0, "5M:  "  + f_txt(s5m),  text_color=f_col(s5m),  text_halign=text.align_right)
+    table.cell(t, 0, 1, "15M: "  + f_txt(s15m), text_color=f_col(s15m), text_halign=text.align_right)
+    table.cell(t, 0, 2, "1H:  "  + f_txt(s1h),  text_color=f_col(s1h),  text_halign=text.align_right)
+    table.cell(t, 0, 3, "4H:  "  + f_txt(s4h),  text_color=f_col(s4h),  text_halign=text.align_right)
+    table.cell(t, 0, 4, "1D:  "  + f_txt(s1d),  text_color=f_col(s1d),  text_halign=text.align_right)
